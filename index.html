@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Kiểm tra cấu hình Wi-Fi | CEH AI v13</title>
+  <link rel="stylesheet" href="styles.css">
+  <script defer src="audit.js"></script>
+  <script defer src="profiles.js"></script>
+  <script defer src="main.js"></script>
+</head>
+<body>
+  <header class="masthead">
+    <div class="wrap masthead-inner">
+      <div>
+        <p class="course">CEH AI v13 <span aria-hidden="true">/</span> Module 16</p>
+        <h1>Kiểm tra cấu hình Wi-Fi</h1>
+        <p>Chọn một hồ sơ và xem kết quả khi thay đổi các thiết lập Wi-Fi gia đình.</p>
+      </div>
+      <span class="scope">Dữ liệu mô phỏng</span>
+    </div>
+  </header>
+  <main class="wrap">
+    <noscript><p class="noscript">Bật JavaScript trong trình duyệt để chạy demo.</p></noscript>
+    <section class="profile-section" aria-labelledby="profile-title">
+      <h2 id="profile-title">Hồ sơ kiểm tra</h2>
+      <div class="profile-picker" role="group" aria-labelledby="profile-title">
+        <button class="profile" type="button" data-profile="A" aria-pressed="true"><span>A</span> Cấu hình ban đầu</button>
+        <button class="profile" type="button" data-profile="B" aria-pressed="false"><span>B</span> Cấu hình mục tiêu</button>
+        <button class="profile" type="button" data-profile="C" aria-pressed="false"><span>C</span> Thiết bị cũ</button>
+      </div>
+      <p id="profile-description" class="profile-description"></p>
+    </section>
+    <div class="workspace">
+      <section class="panel checks" aria-labelledby="check-title">
+        <div class="section-top">
+          <h2 id="check-title">Bảng kiểm cấu hình</h2>
+          <button type="button" id="reset" class="reset" disabled>Khôi phục hồ sơ</button>
+        </div>
+        <form id="check-form" autocomplete="off">
+          <div class="criterion" data-criterion="C1">
+            <div class="criterion-title"><span class="criterion-id">C1</span><label for="mode">Chế độ bảo mật</label></div>
+            <select id="mode" aria-describedby="reason-C1">
+              <option value="wpa3-personal">WPA3-Personal</option>
+              <option value="wpa2-wpa3-transition">WPA2/WPA3 chuyển tiếp</option>
+              <option value="wpa2-personal-aes">WPA2-Personal AES/CCMP</option>
+              <option value="">Chưa rõ</option>
+            </select>
+            <span class="status" data-status-for="C1"></span>
+            <p class="reason" id="reason-C1"></p>
+          </div>
+          <div class="criterion" data-criterion="C2">
+            <div class="criterion-title"><span class="criterion-id">C2</span><label for="wps">Ghép nối nhanh (WPS)</label></div>
+            <select id="wps" aria-describedby="reason-C2">
+              <option value="on">Bật</option><option value="off">Tắt</option><option value="">Chưa rõ</option>
+            </select>
+            <span class="status" data-status-for="C2"></span>
+            <p class="reason" id="reason-C2"></p>
+          </div>
+          <div class="criterion" data-criterion="C3">
+            <div class="criterion-title"><span class="criterion-id">C3</span><label for="pmf">Bảo vệ khung quản lý (PMF)</label></div>
+            <select id="pmf" aria-describedby="reason-C3">
+              <option value="required">Bắt buộc</option><option value="optional">Tùy chọn</option><option value="disabled">Tắt</option><option value="">Chưa rõ</option>
+            </select>
+            <span class="status" data-status-for="C3"></span>
+            <p class="reason" id="reason-C3"></p>
+          </div>
+          <div class="criterion guest-criterion" data-criterion="C4">
+            <div class="criterion-title" id="guest-title"><span class="criterion-id">C4</span><span>Cách ly khách khỏi LAN chính</span></div>
+            <div class="guest-fields" role="group" aria-labelledby="guest-title">
+              <div>
+                <label for="guest-enabled">Mạng khách</label>
+                <select id="guest-enabled" aria-describedby="reason-C4">
+                  <option value="on">Bật</option><option value="off">Tắt</option><option value="">Chưa rõ</option>
+                </select>
+              </div>
+              <div>
+                <label for="guest-isolation">Cách ly</label>
+                <select id="guest-isolation" aria-describedby="reason-C4">
+                  <option value="on">Bật</option><option value="off">Tắt</option><option value="">Chưa rõ</option>
+                </select>
+              </div>
+            </div>
+            <span class="status" data-status-for="C4"></span>
+            <p class="reason" id="reason-C4"></p>
+          </div>
+          <div class="criterion" data-criterion="C5">
+            <div class="criterion-title"><span class="criterion-id">C5</span><label for="remote-admin">Quản trị từ xa qua Internet</label></div>
+            <select id="remote-admin" aria-describedby="reason-C5">
+              <option value="on">Bật</option><option value="off">Tắt</option><option value="">Chưa rõ</option>
+            </select>
+            <span class="status" data-status-for="C5"></span>
+            <p class="reason" id="reason-C5"></p>
+          </div>
+          <div class="criterion" data-criterion="C6">
+            <div class="criterion-title"><span class="criterion-id">C6</span><label for="firmware">Bằng chứng firmware</label></div>
+            <select id="firmware" aria-describedby="reason-C6">
+              <option value="missing">Thiếu bằng chứng</option>
+              <option value="verified">Bản ghi B-FW</option>
+              <option value="outdated">Bản ghi cho thấy có bản mới</option>
+            </select>
+            <span class="status" data-status-for="C6"></span>
+            <p class="reason" id="reason-C6"></p>
+          </div>
+        </form>
+      </section>
+      <aside class="summary-column" aria-label="Kết quả và minh chứng">
+        <section class="panel score-panel" aria-labelledby="score-title">
+          <h2 id="score-title">Kết quả hồ sơ <span id="score-profile">A</span></h2>
+          <div class="score" aria-hidden="true"><span id="passed">0</span><span class="slash">/</span><span id="applicable">6</span></div>
+          <p class="score-caption" aria-hidden="true">tiêu chí đạt trên số tiêu chí áp dụng</p>
+          <p id="announcement" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></p>
+          <dl class="tally">
+            <div data-status="pass"><dt>Đạt</dt><dd id="count-pass">0</dd></div>
+            <div data-status="improve"><dt>Cần cải thiện</dt><dd id="count-improve">0</dd></div>
+            <div data-status="unknown"><dt>Chưa xác minh</dt><dd id="count-unknown">0</dd></div>
+            <div data-status="na"><dt>Không áp dụng</dt><dd id="count-na">0</dd></div>
+          </dl>
+          <p class="formula">Mục chưa xác minh vẫn được tính vào mẫu số. Mục không áp dụng được bỏ khỏi mẫu số.</p>
+        </section>
+        <details class="panel evidence-panel" id="firmware-detail" hidden>
+          <summary>Xem bằng chứng firmware</summary>
+          <dl id="firmware-record" class="record"></dl>
+        </details>
+      </aside>
+    </div>
+    <details class="panel comparison">
+      <summary>So sánh ba hồ sơ gốc</summary>
+      <div class="table-scroll" tabindex="0" role="region" aria-label="Bảng so sánh hồ sơ A, B và C">
+        <table id="comparison-table">
+          <thead><tr><th scope="col">Tiêu chí</th><th scope="col">A · Ban đầu</th><th scope="col">B · Mục tiêu</th><th scope="col">C · Thiết bị cũ</th></tr></thead>
+          <tbody></tbody>
+          <tfoot></tfoot>
+        </table>
+      </div>
+    </details>
+    <footer>Điểm minh họa mức đáp ứng bảng kiểm của đề tài. Khi triển khai, cần xác minh cấu hình trên bộ định tuyến thuộc phạm vi quản trị.</footer>
+  </main>
+</body>
+</html>
