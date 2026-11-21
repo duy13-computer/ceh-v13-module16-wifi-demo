@@ -1,6 +1,9 @@
 (function () {
   'use strict';
 
+  const firmware = typeof module !== 'undefined' && module.exports
+    ? require('./firmware-data.js') : globalThis.WifiFirmware;
+
   const profiles = Object.freeze({
     A: Object.freeze({
       id: 'A',
@@ -11,7 +14,9 @@
       pmf: 'optional',
       guest: Object.freeze({ enabled: true, isolateLan: false }),
       remoteAdmin: false,
-      firmware: null,
+      remoteAdminStrongAuth: null,
+      firmwareScenario: 'missing',
+      firmware: firmware.A.missing,
     }),
     B: Object.freeze({
       id: 'B',
@@ -22,17 +27,9 @@
       pmf: 'required',
       guest: Object.freeze({ enabled: true, isolateLan: true }),
       remoteAdmin: false,
-      firmware: Object.freeze({
-        recordId: 'B-FW',
-        model: 'TB-MẪU-B',
-        hardwareVersion: 'MẪU-R1',
-        currentVersion: 'MẪU-03',
-        catalogVersion: 'MẪU-03',
-        checkedAt: 'T0',
-        source: 'Danh mục hỗ trợ giả định',
-        supportStatus: 'supported',
-        maintenanceStatus: 'up-to-date',
-      }),
+      remoteAdminStrongAuth: null,
+      firmwareScenario: 'verified',
+      firmware: firmware.B.verified,
     }),
     C: Object.freeze({
       id: 'C',
@@ -43,7 +40,9 @@
       pmf: 'optional',
       guest: Object.freeze({ enabled: false, isolateLan: null }),
       remoteAdmin: false,
-      firmware: null,
+      remoteAdminStrongAuth: null,
+      firmwareScenario: 'missing',
+      firmware: firmware.C.missing,
     }),
   });
 

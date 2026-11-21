@@ -15,6 +15,8 @@
     [STATUS.NA]: 'Không áp dụng',
   });
 
+  const STATUS_ICONS = Object.freeze({ pass: '✓', improve: '!', unknown: '?', na: '—' });
+
   const MODE_LABELS = Object.freeze({
     'wpa3-personal': 'WPA3-Personal',
     'wpa2-wpa3-transition': 'WPA2/WPA3 chuyển tiếp',
@@ -88,12 +90,13 @@
     return row('C4', STATUS.UNKNOWN, 'Mạng khách bật, chưa rõ cách ly', 'Cần có bằng chứng về chiều truy cập từ mạng khách vào LAN chính.');
   }
 
-  function checkRemoteAdmin(remoteAdmin) {
+  function checkRemoteAdmin(remoteAdmin, strongAuth) {
     if (remoteAdmin === false) {
       return row('C5', STATUS.PASS, 'Tắt, chỉ quản trị nội bộ', 'Hồ sơ ghi quản trị qua Internet đã tắt.');
     }
     if (remoteAdmin === true) {
-      return row('C5', STATUS.IMPROVE, 'Bật', 'Xem lại nhu cầu và tắt quản trị qua Internet nếu không cần.');
+      const authLabel = strongAuth === true ? 'Có' : strongAuth === false ? 'Không' : 'Chưa xác minh';
+      return row('C5', STATUS.IMPROVE, 'Bật; xác thực mạnh: ' + authLabel, 'Xem lại nhu cầu và tắt quản trị qua Internet nếu không cần.');
     }
     return row('C5', STATUS.UNKNOWN, 'Chưa rõ', 'Cần xác định có bật quản trị qua Internet hay không.');
   }
@@ -102,30 +105,67 @@
     return typeof value === 'string' && value.trim().length > 0;
   }
 
-  function checkFirmware(record) {
+  function interpretFirmware(record) {
+    const evidenceLabels = {
+      supportStatus: { supported: 'Còn hỗ trợ', unsupported: 'Hết hỗ trợ' },
+      maintenanceStatus: { 'up-to-date': 'Đã cập nhật', 'update-available': 'Có bản cập nhật' },
+    };
+    const fieldLabels = {
+      recordId: 'Mã bản ghi', model: 'Thiết bị', hardwareVersion: 'Phiên bản phần cứng',
+      currentVersion: 'Phiên bản đang dùng', catalogVersion: 'Phiên bản đối chiếu',
+      source: 'Nguồn đối chiếu', checkedAt: 'Mốc đối chiếu',
+      supportStatus: 'Trạng thái hỗ trợ', maintenanceStatus: 'Trạng thái cập nhật',
+    };
+    function conclude(status, observed, reason) {
+      const details = Object.entries(fieldLabels).map(([key, label]) => {
+        const value = record?.[key];
+        const labels = evidenceLabels[key];
+        const display = labels
+          ? (Object.hasOwn(labels, value) ? labels[value] : null) : value;
+        return [label, hasText(display) ? display : LABELS[STATUS.UNKNOWN]];
+      });
+      return { ...row('C6', status, observed, reason), details };
+    }
     const fields = ['recordId', 'model', 'hardwareVersion', 'currentVersion', 'source', 'checkedAt'];
     if (!record || !fields.every((field) => hasText(record[field]))) {
-      return row('C6', STATUS.UNKNOWN, 'Thiếu bằng chứng',
+      return conclude(STATUS.UNKNOWN, 'Thiếu bằng chứng',
         'Cần bản ghi xác định thiết bị, phiên bản đang dùng, nguồn và mốc đối chiếu.');
     }
 
     const observed = `Bản ghi ${record.recordId} tại ${record.checkedAt}`;
     const maintenance = record.maintenanceStatus;
+    if (!hasText(maintenance)) {
+      return conclude(STATUS.UNKNOWN, observed, 'Chưa xác minh trạng thái cập nhật firmware.');
+    }
     if (record.supportStatus === 'unsupported') {
-      return row('C6', STATUS.IMPROVE, observed, 'Bản ghi xác nhận thiết bị đã hết được hỗ trợ.');
+      return conclude(STATUS.IMPROVE, observed, 'Bản ghi xác nhận thiết bị đã hết được hỗ trợ.');
     }
     if (record.supportStatus !== 'supported' || !hasText(record.catalogVersion)) {
-      return row('C6', STATUS.UNKNOWN, observed, 'Chưa đủ căn cứ về trạng thái hỗ trợ và phiên bản đối chiếu.');
+      return conclude(STATUS.UNKNOWN, observed, 'Chưa đủ căn cứ về trạng thái hỗ trợ và phiên bản đối chiếu.');
     }
 
     const matches = record.currentVersion.trim() === record.catalogVersion.trim();
-    if (matches && (maintenance == null || maintenance === '' || maintenance === 'up-to-date')) {
-      return row('C6', STATUS.PASS, observed, 'Thiết bị còn hỗ trợ và phiên bản trùng với bản đối chiếu tại mốc ghi nhận.');
+    if (matches && maintenance === 'up-to-date') {
+      return conclude(STATUS.PASS, observed, 'Thiết bị còn hỗ trợ và phiên bản trùng với bản đối chiếu tại mốc ghi nhận.');
     }
     if (!matches && maintenance === 'update-available') {
-      return row('C6', STATUS.IMPROVE, observed, 'Bản ghi xác nhận có bản cập nhật phù hợp cho thiết bị.');
+      return conclude(STATUS.IMPROVE, observed, 'Bản ghi xác nhận có bản cập nhật phù hợp cho thiết bị.');
     }
-    return row('C6', STATUS.UNKNOWN, observed, 'Trạng thái cập nhật chưa được xác nhận hoặc dữ liệu đối chiếu mâu thuẫn.');
+    return conclude(STATUS.UNKNOWN, observed, 'Trạng thái cập nhật chưa được xác nhận hoặc dữ liệu đối chiếu mâu thuẫn.');
+  }
+
+  function validateConsistency(config = {}) {
+    const warnings = [];
+    if (config?.mode === 'wpa3-personal' && config?.pmf !== 'required') {
+      warnings.push({ id: 'wpa3-pmf', message: 'WPA3-Personal được chọn nhưng PMF chưa được đặt thành bắt buộc. Kiểm tra lại tổ hợp cấu hình.' });
+    }
+    if (config?.wps === true && Object.hasOwn(MODE_LABELS, config?.mode)) {
+      warnings.push({ id: 'wps-security', message: 'WPS đang bật cùng ' + MODE_LABELS[config.mode] + '. Tắt WPS để phù hợp cấu hình bảo mật mục tiêu.' });
+    }
+    if (config?.remoteAdmin === true && config?.remoteAdminStrongAuth !== true) {
+      warnings.push({ id: 'remote-auth', message: 'Quản trị từ Internet đang bật nhưng xác thực mạnh chưa được xác nhận. Xác minh cơ chế xác thực hoặc tắt quản trị từ Internet.' });
+    }
+    return warnings;
   }
 
   function assess(profile = {}) {
@@ -134,15 +174,15 @@
       checkWps(profile?.wps),
       checkPmf(profile?.pmf),
       checkGuest(profile?.guest),
-      checkRemoteAdmin(profile?.remoteAdmin),
-      checkFirmware(profile?.firmware),
+      checkRemoteAdmin(profile?.remoteAdmin, profile?.remoteAdminStrongAuth),
+      interpretFirmware(profile?.firmware),
     ];
     const counts = { pass: 0, improve: 0, unknown: 0, na: 0 };
     for (const result of results) counts[result.status] += 1;
     return { results, counts, passed: counts.pass, applicable: results.length - counts.na };
   }
 
-  const api = Object.freeze({ assess, STATUS, LABELS, MODE_LABELS, PMF_LABELS });
+  const api = Object.freeze({ assess, interpretFirmware, validateConsistency, STATUS, LABELS, STATUS_ICONS, MODE_LABELS, PMF_LABELS });
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else globalThis.WifiAudit = api;
 })();

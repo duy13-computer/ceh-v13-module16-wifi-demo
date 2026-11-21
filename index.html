@@ -6,11 +6,16 @@
   <title>Kiểm tra cấu hình Wi-Fi | CEH AI v13</title>
   <link rel="stylesheet" href="styles.css">
   <script defer src="audit.js"></script>
+  <script defer src="firmware-data.js"></script>
   <script defer src="profiles.js"></script>
+  <script defer src="config-json.js"></script>
+  <script defer src="recommendations.js"></script>
+  <script defer src="what-if.js"></script>
   <script defer src="report.js"></script>
   <script defer src="main.js"></script>
 </head>
 <body>
+  <a class="skip-link" href="#main-content">Bỏ qua đến nội dung chính</a>
   <header class="masthead">
     <div class="wrap masthead-inner">
       <div>
@@ -21,7 +26,7 @@
       <span class="scope">Dữ liệu mô phỏng</span>
     </div>
   </header>
-  <main class="wrap">
+  <main id="main-content" class="wrap" tabindex="-1">
     <noscript><p class="noscript">Bật JavaScript trong trình duyệt để chạy demo.</p></noscript>
     <section class="profile-section" aria-labelledby="profile-title">
       <h2 id="profile-title">Hồ sơ kiểm tra</h2>
@@ -31,14 +36,15 @@
         <button class="profile" type="button" data-profile="C" aria-pressed="false"><span>C</span> Thiết bị cũ</button>
       </div>
       <p id="profile-description" class="profile-description"></p>
+      <p id="draft-message" class="draft-message" role="status" aria-live="polite"></p>
     </section>
     <div class="workspace">
       <section class="panel checks" aria-labelledby="check-title">
         <div class="section-top">
           <h2 id="check-title">Bảng kiểm cấu hình</h2>
-          <button type="button" id="reset" class="reset" disabled>Khôi phục hồ sơ</button>
+          <button type="button" id="reset" class="reset" disabled>Xóa bản nháp / khôi phục</button>
         </div>
-        <form id="check-form" autocomplete="off">
+        <form id="check-form" autocomplete="off" aria-labelledby="check-title">
           <div class="criterion" data-criterion="C1">
             <div class="criterion-title"><span class="criterion-id">C1</span><label for="mode">Chế độ bảo mật</label></div>
             <select id="mode" aria-describedby="reason-C1">
@@ -49,6 +55,7 @@
             </select>
             <span class="status" data-status-for="C1"></span>
             <p class="reason" id="reason-C1"></p>
+            <div id="recommendation-C1" class="recommendation" hidden></div>
           </div>
           <div class="criterion" data-criterion="C2">
             <div class="criterion-title"><span class="criterion-id">C2</span><label for="wps">Ghép nối nhanh (WPS)</label></div>
@@ -57,6 +64,7 @@
             </select>
             <span class="status" data-status-for="C2"></span>
             <p class="reason" id="reason-C2"></p>
+            <div id="recommendation-C2" class="recommendation" hidden></div>
           </div>
           <div class="criterion" data-criterion="C3">
             <div class="criterion-title"><span class="criterion-id">C3</span><label for="pmf">Bảo vệ khung quản lý (PMF)</label></div>
@@ -65,6 +73,7 @@
             </select>
             <span class="status" data-status-for="C3"></span>
             <p class="reason" id="reason-C3"></p>
+            <div id="recommendation-C3" class="recommendation" hidden></div>
           </div>
           <div class="criterion guest-criterion" data-criterion="C4">
             <div class="criterion-title" id="guest-title"><span class="criterion-id">C4</span><span>Cách ly khách khỏi LAN chính</span></div>
@@ -84,6 +93,7 @@
             </div>
             <span class="status" data-status-for="C4"></span>
             <p class="reason" id="reason-C4"></p>
+            <div id="recommendation-C4" class="recommendation" hidden></div>
           </div>
           <div class="criterion" data-criterion="C5">
             <div class="criterion-title"><span class="criterion-id">C5</span><label for="remote-admin">Quản trị từ xa qua Internet</label></div>
@@ -91,7 +101,14 @@
               <option value="on">Bật</option><option value="off">Tắt</option><option value="">Chưa rõ</option>
             </select>
             <span class="status" data-status-for="C5"></span>
+            <div class="remote-auth-field">
+              <label for="remote-admin-strong-auth">Xác thực mạnh khi quản trị Internet</label>
+              <select id="remote-admin-strong-auth" aria-describedby="reason-C5">
+                <option value="">Chưa xác minh</option><option value="on">Có</option><option value="off">Không</option>
+              </select>
+            </div>
             <p class="reason" id="reason-C5"></p>
+            <div id="recommendation-C5" class="recommendation" hidden></div>
           </div>
           <div class="criterion" data-criterion="C6">
             <div class="criterion-title"><span class="criterion-id">C6</span><label for="firmware">Bằng chứng firmware</label></div>
@@ -102,6 +119,7 @@
             </select>
             <span class="status" data-status-for="C6"></span>
             <p class="reason" id="reason-C6"></p>
+            <div id="recommendation-C6" class="recommendation" hidden></div>
           </div>
         </form>
       </section>
@@ -111,6 +129,11 @@
           <div class="score" aria-hidden="true"><span id="passed">0</span><span class="slash">/</span><span id="applicable">6</span></div>
           <p class="score-caption" aria-hidden="true">tiêu chí đạt trên số tiêu chí áp dụng</p>
           <p id="announcement" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></p>
+          <div id="what-if-summary" class="what-if-summary" role="status" aria-live="polite" aria-atomic="true">
+            <p id="score-delta"></p>
+            <p id="denominator-note" hidden></p>
+            <p id="last-status-change"></p>
+          </div>
           <dl class="tally">
             <div data-status="pass"><dt>Đạt</dt><dd id="count-pass">0</dd></div>
             <div data-status="improve"><dt>Cần cải thiện</dt><dd id="count-improve">0</dd></div>
@@ -118,6 +141,12 @@
             <div data-status="na"><dt>Không áp dụng</dt><dd id="count-na">0</dd></div>
           </dl>
           <p class="formula">Mục chưa xác minh vẫn được tính vào mẫu số. Mục không áp dụng được bỏ khỏi mẫu số.</p>
+          <button type="button" id="suggest-path" class="suggest-button" aria-expanded="false" aria-controls="shortest-path">Gợi ý đường ngắn nhất tới điểm tối đa</button>
+          <div id="shortest-path" class="shortest-path" hidden>
+            <p class="section-hint">Tính theo từng trường và giữ trạng thái bật/tắt mạng khách đã xác nhận. Gợi ý chỉ liệt kê, không tự sửa cấu hình.</p>
+            <p id="path-summary" role="status" aria-live="polite"></p>
+            <ol id="path-list"></ol>
+          </div>
           <button type="button" id="export-report" class="export-button" aria-describedby="export-hint">Xuất báo cáo HTML</button>
           <p id="export-hint" class="export-hint">Lưu kết quả hiện tại để xem ngoại tuyến hoặc in thành PDF.</p>
           <p id="export-message" class="export-message" role="status" aria-live="polite" aria-atomic="true"></p>
@@ -128,6 +157,25 @@
         </details>
       </aside>
     </div>
+    <section class="panel config-transfer" aria-labelledby="config-transfer-title">
+      <h2 id="config-transfer-title">Lưu và mở cấu hình JSON</h2>
+      <p id="json-hint" class="section-hint">Lưu các lựa chọn mô phỏng để nhập lại. Chấp nhận schema phiên bản 1, tối đa 64 KiB.</p>
+      <button type="button" id="export-config" class="secondary-button">Xuất cấu hình JSON</button>
+      <label for="import-config">Nhập cấu hình JSON từ tệp</label>
+      <input type="file" id="import-config" accept=".json,application/json" aria-describedby="json-hint json-message">
+      <p id="json-message" role="status" aria-live="polite" aria-atomic="true"></p>
+    </section>
+    <section class="panel todo-panel" aria-labelledby="todo-title">
+      <h2 id="todo-title">Việc cần làm</h2>
+      <p class="section-hint">Ưu tiên theo bảng kiểm mô phỏng; mức ưu tiên không thay đổi điểm.</p>
+      <ol id="todo-list" class="todo-list"></ol>
+      <p id="todo-empty" hidden>Không còn việc cần làm trong sáu tiêu chí.</p>
+    </section>
+    <section class="panel consistency-panel" aria-labelledby="consistency-title">
+      <h2 id="consistency-title">Cảnh báo nhất quán</h2>
+      <p>Cảnh báo giúp đối chiếu tổ hợp cấu hình, không thay đổi điểm sáu tiêu chí.</p>
+      <div id="consistency-warnings" role="status" aria-live="polite" aria-atomic="true"></div>
+    </section>
     <details class="panel comparison">
       <summary>So sánh ba hồ sơ gốc</summary>
       <div class="table-scroll" tabindex="0" role="region" aria-label="Bảng so sánh hồ sơ A, B và C">
